@@ -1,4 +1,4 @@
-#MongoDB is document oriented.
+#MongoDB is document oriented & Schema-less
 
 
 ```
