@@ -57,3 +57,28 @@ mongoclient.open(function(err, mongoclient) {
     console.log('Express server started on port 8080');
 });
 ```
+
+##JSON:JavaScript Object Notation
+
+There are two types of data structures:
+
+*Arrays: List of things, []
+*Dictionaries: Associated Maps, {}
+(http://json.org/)
+```
+Example: 
+{"fruit": ["apple", "pear", "peach"] }
+		   {"address":  {"street_address":"23 Elm Drive",
+              "city": "Palo Alto",
+              "state": "California",
+              "zipcode": "94305"}
+              }
+```             
+
+```
+show dbs
+use <dbs>
+show collections
+db.<collection>.find();
+mongorestore <data dump>
+```
