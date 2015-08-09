@@ -33,7 +33,14 @@ package.json file."**
 14. Other fun npm commands, like `edit` and `bugs` and `explore`!
 ```
 
-#NodeJs:
+#NodeJs: 
+
+####Event Driven
+####Non-Blocking
+####Two-way connection
+####Real-time application
+
+**Callback: anonymous function**
 
 1. Write a program that accepts one or more numbers as command-line arguments and prints the sum of those numbers to the console (stdout). 
 ```
