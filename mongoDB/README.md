@@ -1,4 +1,5 @@
 #MongoDB is document oriented & Schema-less
+(http://proserge.kh.ua/coding/index.php/post/88/Mysql+To+MongoDB+statements+table)
 
 
 ```
@@ -444,5 +445,25 @@ $ mongo
 > db.data.find().count()
 > 2963
 > db.data.find({"Wind Direction":{"$gte":180, "$lte": 360}}).sort({"Temperature"
-: 1}).limit(1).pretty()
+: -1}).limit(1).pretty()
 ```
+db.data.find({}).sort({"State": 1},{"Temperature": 1})
+
+##Schema Design
+
+- Rich Documents
+- Pre Join/ Embedded Data
+- MongoDB doesn't have 'join'
+- no constraints
+- atomic operation, no transactions 
+- no declared schema
+- always try to embed/pre-join the documents not like SQL DBs
+
+**Normalization involves decomposing a table into less redundant (and smaller) tables but without losing information; defining foreign keys in the old table referencing the primary keys of the new ones. The objective is to isolate data so that additions, deletions, and modifications of an attribute can be made in just one table and then propagated through the rest of the database using the defined foreign keys.**
+
+- LIVING WITHOUT CONSTRAINTS: Keeping your data consistent even though MongoDB lacks foreign key constraints
+- Lack of transactions can be overcomed by:
+* restructuring the code to work in one document and take advantage of atomic operations
+* implement in SW
+* tolerate (adjust)
+
