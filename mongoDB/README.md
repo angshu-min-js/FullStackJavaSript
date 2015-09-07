@@ -633,3 +633,309 @@ db.system.profile.find({millis:{$gt:1000}}).sort({ts:-1})
 ```
 Servers(mongoD, replica set) ---> Mongos ---> Application
 ```
+
+# Aggregation Framework
+```
+use agg
+db.products.aggregate([
+    {$group:
+     {
+	 _id:"$manufacturer", 
+	 num_products:{$sum:1}
+     }
+    }
+])
+```
+### stages in the aggregation pipeline:
+- Match
+- Group
+- Skip
+- Limit
+- Sort
+- Project
+- Unwind
+### Compound Grouping
+```
+use agg
+db.products.aggregate([
+    {$group:
+     {
+	 _id: {
+	     "manufacturer":"$manufacturer", 
+	     "category" : "$category"},
+	 num_products:{$sum:1}
+     }
+    }
+])
+```
+- $group
+ * $sum: count, sum
+ * $avg
+ * $min
+ * $max
+ * $push: Arrays
+ * $addtoSet: Adds to the array uniquely 
+ * $first $last: doesn't make sense unless you sort them
+```
+use agg
+db.products.aggregate([
+    {$group:
+     {
+	 _id: {
+	     "maker":"$manufacturer"
+	 },
+	 sum_prices:{$sum:"$price"}
+     }
+    }
+])
+```
+```
+{
+	"city" : "CLANTON",
+	"loc" : [
+		-86.642472,
+		32.835532
+	],
+	"pop" : 13990,
+	"state" : "AL",
+	"_id" : "35045"
+}
+```
+Write an aggregation query to sum up the population (pop) by state and put the result in a field called population.
+```
+db.zips.aggregate([{"$group":{"_id":"$state", "population":{$sum:"$pop"}}}])
+```
+- $avg
+```
+db.products.aggregate([
+    {$group:
+     {
+	 _id: {
+	     "category":"$category"
+	 },
+	 avg_price:{$avg:"$price"}
+     }
+    }
+])
+```
+- $addtoSet : No direct parallel to SQL
+```
+db.zips.aggregate([{"$group":{"_id":"$city", "postal_codes":{"$addToSet":"$_id"}}}])
+```
+- $push : can have duplication
+```
+db.zips.aggregate([{"$group":{"_id":"$city", "postal_codes":{"$addToSet":"$_id"}}}])
+db.zips.aggregate([{"$group":{"_id":"$city", "postal_codes":{"$push":"$_id"}}}])
+```
+- $max $min
+```
+db.zips.aggregate([{"$group":{"_id":"$state", "pop":{"$max":"$pop"}}}])
+```
+- double group
+```
+db.grades.aggregate([
+    {'$group':{_id:{class_id:"$class_id", student_id:"$student_id"}, 'average':{"$avg":"$score"}}},
+    {'$group':{_id:"$_id.class_id", 'average':{"$avg":"$average"}}}])
+```
+- $project
+	* $toUpper
+	* $toLower
+	* $add
+	* $multiply
+```
+db.zips.aggregate([{$project:{_id:0, city:{$toLower:"$city"}, pop:1, state:1, zip:"$_id"}}])
+```
+- $match
+```
+db.zips.aggregate([
+    {$match:
+     {
+	 state:"NY"
+     }
+    },
+    {$group:
+     {
+	 _id: "$city",
+	 population: {$sum:"$pop"},
+	 zip_codes: {$addToSet: "$_id"}
+     }
+    },
+    {$project:
+     {
+	 _id: 0,
+	 city: "$_id",
+	 population: 1,
+	 zip_codes:1
+     }
+    }
+     
+])
+```
+**Again, thinking about the zipcode collection, write an aggregation query with a single match phase that filters for zipcodes with greater than 100,000 people.**
+```
+db.zips.aggregate([{"$match":{"pop":{$gt:100000}}}])
+```
+- $sort: memory and disk based
+```
+db.zips.aggregate([
+    {$match:
+     {
+	 state:"NY"
+     }
+    },
+    {$group:
+     {
+	 _id: "$city",
+	 population: {$sum:"$pop"},
+     }
+    },
+    {$project:
+     {
+	 _id: 0,
+	 city: "$_id",
+	 population: 1,
+     }
+    },
+    {$sort:
+     {
+	 population:-1
+     }
+    }
+      
+    
+     
+])
+```
+**Write an aggregation query with just a sort stage to sort by (state, city), both ascending. **
+```
+db.zips.aggregate([{"$sort":{"state":1,"city":1}}])
+```
+- $skip $limit
+```
+db.zips.aggregate([
+    {$match:
+     {
+	 state:"NY"
+     }
+    },
+    {$group:
+     {
+	 _id: "$city",
+	 population: {$sum:"$pop"},
+     }
+    },
+    {$project:
+     {
+	 _id: 0,
+	 city: "$_id",
+	 population: 1,
+     }
+    },
+    {$sort:
+     {
+	 population:-1
+     }
+    },
+    {$skip: 10},
+    {$limit: 5}
+])
+```
+- $first $last
+```
+db.zips.aggregate([
+    /* get the population of every city in every state */
+    {$group:
+     {
+	 _id: {state:"$state", city:"$city"},
+	 population: {$sum:"$pop"},
+     }
+    },
+     /* sort by state, population */
+    {$sort: 
+     {"_id.state":1, "population":-1}
+    },
+
+    /* group by state, get the first item in each group */
+    {$group: 
+     {
+	 _id:"$_id.state",
+	 city: {$first: "$_id.city"},
+	 population: {$first:"$population"}
+     }
+    },
+
+    /* now sort by state again */
+    {$sort:
+     {"_id":1}
+    }
+])
+```
+- $unwind
+```
+db.posts.aggregate([
+    /* unwind by tags */
+    {"$unwind":"$tags"},
+    /* now group by tags, counting each tag */
+    {"$group": 
+     {"_id":"$tags",
+      "count":{$sum:1}
+     }
+    },
+    /* sort by popularity */
+    {"$sort":{"count":-1}},
+    /* show me the top 10 */
+    {"$limit": 10},
+    /* change the name of _id to be tag */
+    {"$project":
+     {_id:0,
+      'tag':'$_id',
+      'count' : 1
+     }
+    }
+    ])
+```
+- double $unwind and wind by push
+```
+db.inventory.aggregate([
+    {$unwind: "$sizes"},
+    {$unwind: "$colors"},
+    /* create the color array */
+    {$group: 
+     {
+	'_id': {name:"$name",size:"$sizes"},
+	 'colors': {$push: "$colors"},
+     }
+    },
+    /* create the size array */
+    {$group: 
+     {
+	'_id': {'name':"$_id.name",
+		'colors' : "$colors"},
+	 'sizes': {$push: "$_id.size"}
+     }
+    },
+    /* reshape for beauty */
+    {$project: 
+     {
+	 _id:0,
+	 "name":"$_id.name",
+	 "sizes":1,
+	 "colors": "$_id.colors"
+     }
+    }
+])
+```
+Alternative using addtoSet (has to be unique)
+```
+db.inventory.aggregate([
+    {$unwind: "$sizes"},
+    {$unwind: "$colors"},
+    {$group: 
+     {
+	'_id': "$name",
+	 'sizes': {$addToSet: "$sizes"},
+	 'colors': {$addToSet: "$colors"},
+     }
+    }
+])
+```
