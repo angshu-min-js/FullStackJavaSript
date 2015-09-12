@@ -939,3 +939,133 @@ db.inventory.aggregate([
     }
 ])
 ```
+- SQL to Aggregation Mapping Chart:(http://docs.mongodb.org/manual/reference/sql-aggregation-comparison/)
+- Limitation of aggregation framework:
+	* 100MB limit - allow disk to avoid
+	* single document return of 16MB limit - use cursor to avoid
+	* sharded: doesnt have good scalability like hadoop for map reduce
+
+##APPLICATION ENGINEERING
+
+*An in-memory database (IMDB; also main memory database system or MMDB or memory resident database) is a database management system that primarily relies on main memory for computer data storage. It is contrasted with database management systems that employ a disk storage mechanism. Main memory databases are faster than disk-optimized databases since the internal optimization algorithms are simpler and execute fewer CPU instructions. Accessing data in memory eliminates seek time when querying the data, which provides faster and more predictable performance than disk.
+
+Applications where response time is critical, such as those running telecommunications network equipment and mobile advertising networks, often use main-memory databases.[3] IMDBs have gained a lot of traction, especially in the data analytics space, starting in the mid-2000s - mainly due to less expensive RAM.
+
+With the introduction of non-volatile random access memory technology,[when?] in-memory databases will be able to run at full speed and maintain data in the event of power failure.*
+
+*A journaling file system is a file system that keeps track of changes not yet committed to the file system's main part by recording the intentions of such changes in a data structure known as a "journal", which is usually a circular log. In the event of a system crash or power failure, such file systems can be brought back online quicker with lower likelihood of becoming corrupted.
+Depending on the actual implementation, a journaling file system may only keep track of stored metadata, resulting in improved performance at the expense of increased possibility for data corruption. Alternatively, a journaling file system may track both stored data and related metadata, while some implementations allow selectable behavior in this regard.*
+(http://docs.intersystems.com/ens20121/csp/docbook/DocBook.UI.Page.cls?KEY=GCDI_journal)
+(http://docs.mongodb.org/manual/core/journaling/)
+```
+Provided you assume that the disk is persistent, what are the w and j settings required to guarantee that an insert or update has been written all the way to disk.
+>w=1, j=1
+```
+- Network error:
+ * The network fails between the time of the write and the time the client receives a response to the write.
+ * The network TCP connection between the application and the server was reset after the server received a write but before a response could be sent.
+ * The MongoDB server terminates between receiving the write and responding to it.
+
+- Replication:
+ * Three nodes: 1 Primary, 2 Secondary
+ * Election when the primary goes down for a new primary. So min number of node = 3 as 2 secondary would be majority
+- Election:
+ * Regular node
+ * Arbiter node -  There for voting purposes
+ * Delayed/regular - DR node, can be behind other nodes, can vote (v), can't be primary, priority(p)  = 0 
+ * hidden - P=0, v=1
+ 
+ - Creating Replica set:
+```
+#.sh file
+#!/usr/bin/env bash
+
+mkdir -p /data/rs1 /data/rs2 /data/rs3
+mongod --replSet m101 --logpath "1.log" --dbpath /data/rs1 --port 27017 --oplogSize 64 --fork --smallfiles
+mongod --replSet m101 --logpath "2.log" --dbpath /data/rs2 --port 27018 --oplogSize 64 --smallfiles --fork
+mongod --replSet m101 --logpath "3.log" --dbpath /data/rs3 --port 27019 --oplogSize 64 --smallfiles --fork
+```
+* configuration replica.js *
+```
+config = { _id: "m101", members:[
+          { _id : 0, host : "localhost:27017"},
+          { _id : 1, host : "localhost:27018"},
+          { _id : 2, host : "localhost:27019"} ]
+};
+
+rs.initiate(config);
+rs.status();
+```
+- rs.slaveOk() : this would allow to read from the secondary
+- oplog
+```
+>use local
+>show collection
+oplog.rs
+>db.oplog.rs.find()
+```
+ * Replication supports mixed-mode storage engines. For examples, a mmapv1 primary and wiredTiger secondary.
+ * A copy of the oplog is kept on both the primary and secondary servers.
+ * The oplog is implemented as a capped collection.
+** Capped collections are fixed-size collections that support high-throughput operations that insert and retrieve documents based on insertion order. Capped collections work in a way similar to circular buffers: once a collection fills its allocated space, it makes room for new documents by overwriting the oldest documents in the collection. **
+
+- Connecting to a Replica Set from the Node.js Driver
+ * create the replica sets
+ * nodejs:
+```
+ var MongoClient = require('mongodb').MongoClient;
+
+MongoClient.connect("mongodb://localhost:30001,localhost:30002,localhost:30003/course", function(err, db) {
+    if (err) throw err;
+
+    db.collection("repl").insert({ 'x' : 1 }, function(err, doc) {
+        if (err) throw err;
+
+        db.collection("repl").findOne({ 'x' : 1 }, function(err, doc) {
+            if (err) throw err;
+
+            console.log(doc);
+            db.close();
+        });
+    });
+});
+```
+ * The missing node will be discovered as long as you list at least one valid node.
+ 
+- NodeJs: During the failover nodejs stores the writes and reads in the its buffer and when the election is done the will send all the operations. The insert will be buffered until the election completes, then the callback will be called after the operation is sent and a response is received
+```
+db.admin
+db.shutdownServer()
+```
+- Read preference (http://docs.mongodb.org/master/core/read-preference/)
+- Sharding (http://docs.mongodb.org/manual/core/sharding-introduction/)
+** Sharding is a method for storing data across multiple machines. MongoDB uses sharding to support deployments with very large data sets and high throughput operations. **
+ * shard key, db level, For a vertical scalability we shard-> break into multiple hosts according to shard key (part of the document like _id, doc_id)
+```
+ ----       --------
+|app| ----> |mongoS| ---->S1 S2 S3 S4....} sharding
+ ----       --------      |   |  |  |
+                        R11 R12....... } Replica set per shard
+```
+ The shard key is not included in the find operation, mongos has to send the query to all of the shards. Each shard has replica-set members, but only one member of each replica set (the primary, by default) is required to handle the find.
+- Sharded Environment
+ * Sharded system
+ * Replica sets
+ * config servers - min 3 recommended
+- Implication of sharding
+ * needs a shard key
+ * shard isn't mutable
+ * index that starts with the shard key, it cant be a multi key index
+ * shard key has to be specified as multi
+ * the key which I would used as most, that should be a shard key
+ * cant be unique
+ 
+- shard key 
+ * sufficient cardinality 
+ * avoid hot spotting, shouldn't monotonically increase
+ * should be naturally parallel
+ * THEY ARE NON MUTABLE SO BE CAREFUL BEFORE COMMITING 
+ * cant me multi key
+ 
+ 
+ 
