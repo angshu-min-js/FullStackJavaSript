@@ -1067,5 +1067,33 @@ db.shutdownServer()
  * THEY ARE NON MUTABLE SO BE CAREFUL BEFORE COMMITING 
  * cant me multi key
  
- 
+##MONGOOSE
+
+- Object Relational Mapping (ORM) or, Object Data Mapping (ODM)
+- It translates data in the database to JavaScript objects for use in your application
+- Structure:
+```
+- app.js
+ - Express
+ - Routes
+	- error.js		  
+	- index.js
+	- login.js
+			- helpers
+			- plugins
+		- Views
+			- home.html 		  
+				- layout.html      
+				- login.html      
+				- signup.html   
+
+- models: mongoose schema
+- middle-ware: Function that are given to express to execute before the route has been executed, this helps to validate incoming data, perform queries, increment  counters all business and server logic
+- helper
+- plugins: http://plugins.mongoosejs.com/
+```
+
+
+
+
  
