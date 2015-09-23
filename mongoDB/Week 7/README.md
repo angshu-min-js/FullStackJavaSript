@@ -448,5 +448,4 @@ Check below all the statements that are true about the way MongoDB handled this 
 - The query avoided sorting the documents because it was able to use an index's ordering.
 ###Solution
 - The query scanned every document in the collection.
-- The query used an index to figure out which documents match the find criteria.
 - The query avoided sorting the documents because it was able to use an index's ordering.
