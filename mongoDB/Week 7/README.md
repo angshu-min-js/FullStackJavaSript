@@ -175,7 +175,9 @@ Which of the indexes could be used by MongoDB to assist in answering the query? 
 - a_1_b_1_c_-1
 - _id_
 - a_1_c_1
-###Solution
+
+###Solution:
+
 - a_1_b_1
 - c_1
 - a_1_b_1_c_-1
@@ -250,7 +252,9 @@ Download and unzip Final7.zip and use mongoimport to import the collections in a
 
 When you are done removing the orphan images from the collection, there should be 89,737 documents in the images collection. To prove you did it correctly, what are the total number of images with the tag 'kittens" after the removal of orphans? As as a sanity check, there are 49,932 images that are tagged 'kittens' before you remove the images. 
 Hint: you might consider creating an index or two or your program will take a long time to run.
-###Solution
+
+###Solution:
+
 ```
 function filter(image) {
 	if (db.albums.count({'images': image._id}) == 0)
@@ -290,7 +294,9 @@ Will there be a rollback of data on Node 1 when Node 1 comes back up? Choose the
 - No, never
 - Maybe, it depends on whether Node 3 has processed the write
 - Maybe, it depends on whether Node 2 has processed the write
+
 ###Solution
+
 - Maybe, it depends on whether Node 2 has processed the write
 
 #FINAL: QUESTION 9
@@ -303,7 +309,9 @@ We need to decide on a shard key to shard the record collection. What's the best
 - Date and time when medical record was created
 - Patient first name
 - Patient last name
+
 ###Solution
+
 - patient_id
 
 #FINAL: QUESTION 10
@@ -446,6 +454,8 @@ Check below all the statements that are true about the way MongoDB handled this 
 - The query scanned every document in the collection.
 - The query used an index to figure out which documents match the find criteria.
 - The query avoided sorting the documents because it was able to use an index's ordering.
+
 ### Solution
+
 - The query scanned every document in the collection.
 - The query avoided sorting the documents because it was able to use an index's ordering.
